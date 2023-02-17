@@ -36,8 +36,8 @@
 ## Технологии:
 - Python 3.9
 - Aiogram
-- Aiohttp (чтобы бот мог делать запросы)
-- SQLAlchemy (PostgreSQL) (чтобы использовать БД)
+- Aiohttp (для возможности делать запросы)
+- SQLAlchemy (PostgreSQL)
 
 - Docker
 - Nginx (можно использовать локальный nginx без докера)
