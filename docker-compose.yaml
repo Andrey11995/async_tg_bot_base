@@ -3,8 +3,25 @@ services:
     build: .
     env_file:
       - .env
+    expose:
+      - "5000"
+    depends_on: # если будет подключена БД
+      - db
+    # Если локальный nginx, то вместо expose:
+    # ports:
+    #   - "5000:5000"
 
-  nginx:
+  db:
+    image: postgres:13.4-alpine
+    restart: always
+    volumes:
+      - postgre_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"  # открывать порт необязательно, нужно для возможности подключения к БД извне
+    env_file:
+      - .env
+
+  nginx:  # можно использовать локальный nginx
     image: nginx:1.20.1-alpine
     container_name: bot_nginx
     volumes:
