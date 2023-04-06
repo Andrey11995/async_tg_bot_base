@@ -42,5 +42,8 @@ WEBAPP_HOST = '0.0.0.0'
 WEBAPP_PORT = os.getenv('PORT')
 
 
-def get_session():
-    return async_session()
+def with_session(method):
+    async def wrapper(cls, *args, **kwargs):
+        async with async_session() as session:
+            return await method(cls, session, *args, **kwargs)
+    return wrapper

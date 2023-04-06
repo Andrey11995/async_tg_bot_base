@@ -1,8 +1,7 @@
 import logging
-import re
 from tempfile import NamedTemporaryFile
 
-from openpyxl import Workbook, load_workbook
+from openpyxl import load_workbook
 from openpyxl.styles import Alignment
 
 logger = logging.getLogger(__name__)

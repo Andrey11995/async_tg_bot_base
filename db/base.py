@@ -1,9 +1,10 @@
 import logging
 
-from sqlalchemy import select, MetaData
+from sqlalchemy import MetaData
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import declarative_base
 
-from settings import get_session
+from settings import with_session
 
 logger = logging.getLogger(__name__)
 
@@ -15,67 +16,49 @@ class BaseTable(Base):
     """
     Абстрактная таблица с базовыми методами.
 
-    Также можно получать сессию из присланного боту сообщения:
-    message.bot.get('db')
+    При вызове методов сессию передавать не нужно.
+    Она передается автоматически при помощи декоратора @with_session.
     """
     __abstract__ = True
     __metadata__ = metadata
 
-    @staticmethod
-    async def execute(query):
-        async with get_session() as session:
-            return await session.execute(query)
-
-    @staticmethod
-    async def scalar(query):
-        async with get_session() as session:
-            return await session.scalar(query)
-
-    async def save(self):
-        async with get_session() as session:
-            await session.merge(self)
-            await session.commit()
-
-    async def create(self):
-        await self.save()
-
-    async def update(self, **kwargs):
-        for field, value in kwargs.items():
-            old_value = getattr(self, field)
-            if isinstance(value, dict) and isinstance(old_value, dict):
-                old_value.update(value)
-                value = old_value
-            setattr(self, field, value)
-        await self.save()
-
-    async def delete(self):
-        async with get_session() as session:
-            await session.delete(self)
-            await session.commit()
+    @with_session
+    async def save(self, session: AsyncSession):
+        async with session.begin():
+            session.add(self)
 
     @classmethod
-    async def delete_list(cls, **kwargs):
-        for item in await cls.list(**kwargs):
-            await item.delete()
-
-    @classmethod
-    async def count(cls, **kwargs):
-        return (await cls.execute(await cls.query(kwargs))).scalar_one_or_none().count()
-
-    @classmethod
-    async def exists(cls, **kwargs):
-        return bool((await cls.execute(select(cls).filter_by(**kwargs))).scalar_one_or_none())
-
-    @classmethod
-    async def query(cls, kwargs):
-        if kwargs:
-            return select(cls).filter_by(**kwargs)
-        return select(cls)
+    @with_session
+    async def delete(cls, session: AsyncSession, obj):
+        await session.delete(obj)
+        await session.commit()
 
     @classmethod
     async def get(cls, **kwargs):
-        return (await cls.execute(select(cls).filter_by(**kwargs))).scalars().unique().one_or_none()
+        return (await cls.filter(**kwargs)).one_or_none()
 
     @classmethod
-    async def list(cls, **kwargs):
-        return (await cls.execute(await cls.query(kwargs))).scalars().unique().all()
+    @with_session
+    async def filter(cls, session: AsyncSession, **kwargs):
+        query = f'SELECT * FROM {cls.__tablename__}'
+        conditions = []
+        for key, value in kwargs.items():
+            conditions.append(f"{key} = '{value}'")
+        if conditions:
+            query += ' WHERE ' + ' AND '.join(conditions)
+        return (await session.execute(query)).unique()
+
+    @classmethod
+    @with_session
+    async def create(cls, session: AsyncSession, **kwargs):
+        instance = cls(**kwargs)
+        async with session.begin():
+            session.add(instance)
+        return instance
+
+    @with_session
+    async def update(self, session: AsyncSession, **kwargs):
+        for attr, value in kwargs.items():
+            setattr(self, attr, value)
+        async with session.begin():
+            session.add(self)
