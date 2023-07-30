@@ -3,8 +3,7 @@ import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 logging.basicConfig(level=logging.INFO)
 
@@ -19,17 +18,15 @@ engine = create_async_engine(
     echo=True
 )
 
-async_session = sessionmaker(
+async_session = async_sessionmaker(
     engine,
     expire_on_commit=False,
-    future=True,
-    class_=AsyncSession
+    future=True
 )
 
 BOT_TOKEN = os.getenv('TG_BOT_TOKEN')
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
-bot['db'] = async_session
 dp = Dispatcher(bot, storage=storage)
 
 WEBHOOK = bool(int(os.getenv('WEBHOOK')))
@@ -43,7 +40,9 @@ WEBAPP_PORT = os.getenv('PORT')
 
 
 def with_session(method):
-    async def wrapper(cls, *args, **kwargs):
+    async def wrapper(cls, session=None, *args, **kwargs):
+        if session:
+            return await method(cls, session, *args, **kwargs)
         async with async_session() as session:
             return await method(cls, session, *args, **kwargs)
     return wrapper

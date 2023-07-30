@@ -1,13 +1,11 @@
-# Async Telegram Bot
-### Шаблон асинхронного бота на фреймворке Aiogram
+# Async Telegram Bot (Aiogram2)
+### Шаблон асинхронного бота на фреймворке Aiogram2
 
 Бот может общаться с базой данных PostgreSQL (с использованием ORM SQLAlchemy)
 и сторонними API (например Notion) посредством отправки запросов через Aiohttp.
 
 В основном бот использует webhooks, но для разработки добавлен polling
 (переключается переменной WEBHOOK в .env файле).
-
-В боте присутствуют обработчики отправленных текстовых файлов и таблиц Excel.
 
 ## Наполнение .env файла:
 - WEBHOOK - 1 - webhook, 0 - polling
@@ -36,7 +34,6 @@
 ## Технологии:
 - Python 3.9
 - Aiogram
-- Aiohttp (для возможности делать запросы)
 - SQLAlchemy (PostgreSQL)
 
 - Docker
